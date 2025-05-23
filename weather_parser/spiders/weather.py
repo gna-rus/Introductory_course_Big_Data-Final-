@@ -28,14 +28,25 @@ class WeatherSpider(scrapy.Spider):
             writer = csv.writer(file)
             writer.writerow(row_data)
 
-    def clear_csv_content(self,filename):
-        """ Полная очистка содержимого CSV-файла"""
-        self.create_csv_file(filename)
+    def locations(self, name_location, main_list, countries):
+        """Функция для генерации названия региона"""
+        result = []
+        current_country = None
+
+        for region in main_list:
+            if region in countries:  # Проверяем, является ли текущий элемент названием страны
+                current_country = region
+            else:
+                result.append(f'{region} ({current_country})')
+
+        final_list = [f"{x}, {y}" for x, y in zip(name_location, result)]
+        return final_list
+
 
 
     def parse(self, response:HtmlResponse):
 
-        self.create_csv_file('weather_data.csv')
+        self.create_csv_file('weather_data.csv') # Создаю файл в который потом и буду сохранять данные
         for city in self.cities:
             # Выбираем элемент input по указанному XPath
             xpath_input_field = '/html/body/div[1]/div[1]/div[2]/form/input[1]'
@@ -55,44 +66,35 @@ class WeatherSpider(scrapy.Spider):
         list_absolut_urls = [] # Список url результатов поиска
         list_name_location = [] # Списко названий локаций
 
-        links = response.xpath(f'/html/body/div[1]/div[2]/div[1]/ul[2]/li/a/@href').getall()
+        links = response.xpath(f'/html/body/div[1]/div[2]/div[1]/ul[2]/li/a/@href').getall() # Получаю url всех результатов поиска
+        name_location = response.xpath(f'/html/body/div[1]/div[2]/div[1]/ul/li/a/text() | /html/body/div[1]/div[2]/div[1]/ul/li/a/b/text()').getall()[1:] # Название города
+        full_name_location = response.xpath(f'/html/body/div[1]/div[2]/div[1]/ul[2]/li/div/text()').getall()[1:] # Yfpdfybt htubjyjd b cnhfys
+        country_name = response.xpath(f'/html/body/div[1]/div[2]/div[1]/ul[2]/li/div[@class = "search-country-name"]/text()').getall() # Список стран
+
+        full_name = self.locations(name_location, full_name_location, country_name)
+        print(full_name)
 
         # Формируею список всех результатов поиска
         for i in links:
-            list_name_location.append(i.split('/')[-2])
-            list_absolut_urls.append('https://'+i+self.month_year)
-
+            list_name_location.append(i.split('/')[-2]) # извлекаю название локации из url
+            list_absolut_urls.append('https://'+i+self.month_year) # формирую полный адрес url
 
         for i in range(len(list_absolut_urls)):
-            yield scrapy.Request(list_absolut_urls[i], meta= {'name_location':list_name_location[i]},callback=self.parse_station_page)
+            yield scrapy.Request(list_absolut_urls[i], meta= {'name_location':full_name[i]},callback=self.parse_station_page)
 
         return scrapy.Request(url=self.start_urls[0], dont_filter=True)
 
     def parse_station_page(self, response):
         name_location = response.meta['name_location']
-        print('____________')
-        print(name_location)
 
         # Эта строка определяет погоду по дням
         temp_days = response.xpath(f'/html/body/div[1]/div[2]/div[1]/ul[3]/li/a/span/text()').getall() # Температура по дням
         precipitation_days = response.xpath(f'/html/body/div[1]/div[2]/div[1]/ul[3]/li/a/i/@title').getall() # Осадки по дням
-        print(temp_days)
-        print(precipitation_days)
 
         # Сохраняю данные в файлы
         for i in range(len(temp_days)):
             list_weather = [f"{i}-{self.month_year}", name_location, temp_days[i], precipitation_days[i]]
             self.append_to_csv("weather_data.csv", list_weather)
 
-
-
-
-
-
-        # #Провожу Get запрос
-        # for link in links:
-        #     yield response.follow(link, callback=self.weather_parse)
-        #
-        # # print(response.follow(link), type(response.follow(link)))
 
 
