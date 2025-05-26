@@ -68,12 +68,11 @@ class WeatherSpider(scrapy.Spider):
 
         links = response.xpath(f'/html/body/div[1]/div[2]/div[1]/ul[2]/li/a/@href').getall() # Получаю url всех результатов поиска
         name_location = response.xpath(f'/html/body/div[1]/div[2]/div[1]/ul/li/a/text() | /html/body/div[1]/div[2]/div[1]/ul/li/a/b/text()').getall()[1:] # Название города
-        full_name_location = response.xpath(f'/html/body/div[1]/div[2]/div[1]/ul[2]/li/div/text()').getall()[1:] # Yfpdfybt htubjyjd b cnhfys
+        full_name_location = response.xpath(f'/html/body/div[1]/div[2]/div[1]/ul[2]/li/div/text()').getall()[1:] # Название регионов и страны
         country_name = response.xpath(f'/html/body/div[1]/div[2]/div[1]/ul[2]/li/div[@class = "search-country-name"]/text()').getall() # Список стран
 
-        full_name = self.locations(name_location, full_name_location, country_name)
+        full_name = self.locations(name_location, full_name_location, country_name) # Формирую полное название локации (в разных странах могут быть города с одинаковым названием, поэтому надо упоминание и города и региона и страны)
         print(full_name)
-
         # Формируею список всех результатов поиска
         for i in links:
             list_name_location.append(i.split('/')[-2]) # извлекаю название локации из url
@@ -93,7 +92,7 @@ class WeatherSpider(scrapy.Spider):
 
         # Сохраняю данные в файлы
         for i in range(len(temp_days)):
-            list_weather = [f"{i}-{self.month_year}", name_location, temp_days[i], precipitation_days[i]]
+            list_weather = [f"{i}-{self.month_year}", name_location, temp_days[i], precipitation_days[i]] # формирую строку для отчета о погоде по дням и локациям
             self.append_to_csv("weather_data.csv", list_weather)
 
 
