@@ -72,7 +72,11 @@ class WeatherSpider(scrapy.Spider):
         country_name = response.xpath(f'/html/body/div[1]/div[2]/div[1]/ul[2]/li/div[@class = "search-country-name"]/text()').getall() # Список стран
 
         full_name = self.locations(name_location, full_name_location, country_name) # Формирую полное название локации (в разных странах могут быть города с одинаковым названием, поэтому надо упоминание и города и региона и страны)
+
+        # full_name = [item.replace(',', '') for item in full_name] # Удаляю запятые
+
         print(full_name)
+
         # Формируею список всех результатов поиска
         for i in links:
             list_name_location.append(i.split('/')[-2]) # извлекаю название локации из url
